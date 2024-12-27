@@ -6,9 +6,10 @@ import {
 import { FieldValue } from "firebase-admin/firestore";
 import { NextApiRequest, NextApiResponse } from "next";
 
-import { migrateCollection } from "./collections/migrate.page";
+import { migrateCollection } from "../collections/migrate.page";
 
 import { initAuthentication } from "services/firebase/authentication";
+import { getAuth } from "firebase/auth";
 
 try {
   initAuthentication();

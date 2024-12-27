@@ -83,8 +83,9 @@ export async function getFirestorePrivateUserData(uid: string) {
   }
 }
 
-export async function validateUsernameDb(username: string | undefined) {
-  if (!username) return undefined;
+export async function validateUsernameDb(
+  username: string | undefined
+): Promise<boolean | undefined> {
   const db = getFirestore();
   const q = query(collection(db, "users"), where("username", "==", username));
   const querySnap = await getDocs(q);

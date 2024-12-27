@@ -23,10 +23,11 @@ import { useRouter } from "next/router";
 import useUser from "services/firebase/user";
 import {
   signInWithGoogle,
-  signInWithEmail,
   signUpWithEmail,
+  signInFunction,
 } from "services/firebase/authentication";
 import { showNotification } from "@mantine/notifications";
+import { z } from "zod";
 
 function Login() {
   const [isRegister, setIsRegister] = useState(false);
@@ -37,21 +38,19 @@ function Login() {
 
   function signOnAlertMsg(error: string) {
     const codeRegex = /\(([^)]+)\)/;
-    const code = codeRegex.exec(error)?.[1].split("/")[1] ?? "";
+    const code = codeRegex.exec(error)?.[1].split("/")[1] ?? error;
     let message;
     switch (code) {
       case "wrong-password":
-        message = <span>The password is incorrect. Please try again.</span>;
-        break;
+        return <span>The password is incorrect. Please try again.</span>;
       case "user-not-found":
-        message = (
+        return (
           <span>
             A user with this email address could not be found. Please try again.
           </span>
         );
-        break;
       case "timeout":
-        message = (
+        return (
           <span>
             The operation has timed out. Please try again or{" "}
             <Anchor inherit href="/issues">
@@ -60,39 +59,45 @@ function Login() {
             if the problem is persistent.
           </span>
         );
-        break;
       case "too-many-requests":
-        message = (
+        return (
           <span>
             The server has received too many sign on requests. Please wait and
             try again later.
           </span>
         );
-        break;
       case "email-already-in-use":
-        message = (
+        return (
           <span>
             The email you tried to sign up with is already in use. Please try
             registering with a new email or login into the account associated
             with the provided email.
           </span>
         );
-        break;
+      case "taken-username":
+        return (
+          <span>
+            The provided username is already in use. Please provide another
+            username
+          </span>
+        );
+      case "short-username":
+        return (
+          <span>The provided username must be 8 characters or longer</span>
+        );
       default:
-        message = (
+        return (
           <span>
             An unknown sign on error has occured. Please try again or{" "}
             <Anchor href="/issues">submit an issue</Anchor> if the problem is
             persistent.
           </span>
         );
-        break;
     }
-
-    return message;
   }
 
   useEffect(() => {
+    console.log({ signOnError });
     if (signOnError) {
       showNotification({
         id: "signinError",
@@ -113,7 +118,12 @@ function Login() {
     },
 
     validate: {
-      email: (val) => (/^\S+@\S+$/.test(val) ? null : "Invalid email"),
+      email: (val) =>
+        !isRegister
+          ? null
+          : z.string().email().safeParse(val).success
+          ? null
+          : "Please provide a valid email",
       password: (val) =>
         val.length >= 6 ? null : "Password must be over 6 characters long",
       terms: (val: boolean) =>
@@ -205,7 +215,7 @@ function Login() {
                     onError
                   );
                 } else {
-                  signInWithEmail(
+                  signInFunction(
                     form.values.email,
                     form.values.password,
                     onError
@@ -226,7 +236,7 @@ function Login() {
                 <TextInput
                   id="siginin-input-email"
                   placeholder="anzu@ensemblesquare.com"
-                  label="Email"
+                  label={isRegister ? "Email" : "Email or Username"}
                   required
                   {...form.getInputProps("email")}
                 />

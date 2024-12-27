@@ -117,8 +117,11 @@ function Page({
       </MediaQuery>
       <Box className={classes.calendar}>
         <CalendarHeader
-          calendarTime={calendarTime}
-          setCalendarTime={setCalendarTime}
+          {...{
+            calendarTime,
+            setCalendarTime,
+            events,
+          }}
         >
           <MediaQuery
             smallerThan="sm"
@@ -159,10 +162,7 @@ function Page({
           <CalendarListView events={events} calendarTime={calendarTime} />
         )}
         {view === "list" && (
-          <CalendarHeader
-            calendarTime={calendarTime}
-            setCalendarTime={setCalendarTime}
-          />
+          <CalendarHeader {...{ calendarTime, setCalendarTime, events }} />
         )}
       </Box>
     </>
