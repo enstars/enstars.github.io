@@ -11,6 +11,7 @@ import {
 import { IconCheck, IconX, IconAt } from "@tabler/icons-react";
 import Image from "next/image";
 import useTranslation from "next-translate/useTranslation";
+import axios from "axios";
 
 import kinnie from "./kinnie.png";
 
@@ -376,13 +377,21 @@ function DebouncedUsernameInput({ changedCallback = () => {} }) {
         setUsernameMsg(t("account.usernameErrorLong"));
         setUsernameJudgement(true);
       } else {
-        const usernameValid = await validateUsernameDb(value);
-        if (!usernameValid) {
+        try {
+          const res = await axios.post("/api/username/validate", {
+            username: value,
+          });
+          const usernameValid = res.data.valid;
+          if (!usernameValid) {
+            setUsernameMsg(t("account.usernameTaken"));
+            setUsernameJudgement(true);
+          } else {
+            setNewUsername(value);
+            setUsernameMsg(t("account.usernameAvailable"));
+            setUsernameJudgement(true);
+          }
+        } catch {
           setUsernameMsg(t("account.usernameTaken"));
-          setUsernameJudgement(true);
-        } else {
-          setNewUsername(value);
-          setUsernameMsg(t("account.usernameAvailable"));
           setUsernameJudgement(true);
         }
       }

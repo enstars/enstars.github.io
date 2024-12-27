@@ -11,6 +11,7 @@ import {
   updateEmail,
   updatePassword,
   reauthenticateWithPopup,
+  signInWithCustomToken,
 } from "firebase/auth";
 import {
   collection,
@@ -23,6 +24,7 @@ import {
 } from "firebase/firestore";
 import { validateUsernameDb } from "./firestore";
 import z from "zod";
+import axios from "axios";
 
 const parseKey = (key: string) => {
   return key?.replace(/\\n/g, "\n")?.replace(/'/g, "");
@@ -176,19 +178,13 @@ export async function signInWithUsername(
   onError: (error: Error) => void
 ) {
   try {
-    const isUsernameValid = await validateUsernameDb(username);
-    if (!isUsernameValid)
-      throw new TypeError("Could not find user with this username");
-    const db = getFirestore();
-    const usernameQuery = query(
-      collection(db, "users"),
-      where("username", "==", username)
-    );
-    const querySnap = await getDocs(usernameQuery);
-    const userData = querySnap.docs[0];
-    const userEmail = userData.data().email;
-
-    await signInWithEmail(userEmail, password, onError);
+    const clientAuth = getAuth();
+    const res = await axios.post("/api/login/token", {
+      username,
+      password,
+    });
+    const token = res.data.customToken;
+    await signInWithCustomToken(clientAuth, token);
   } catch (error) {
     onError(error as Error);
   }

@@ -23,7 +23,6 @@ import { useRouter } from "next/router";
 import useUser from "services/firebase/user";
 import {
   signInWithGoogle,
-  signInWithEmail,
   signUpWithEmail,
   signInFunction,
 } from "services/firebase/authentication";
