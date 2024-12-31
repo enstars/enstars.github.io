@@ -195,14 +195,15 @@ function Page() {
                 .
               </Box>
             )}
-            {(isEmailValid || showEmailFromUsername) && (
-              <ReCAPTCHA
-                sitekey={CONSTANTS.KEYS.CAPTCHA}
-                onChange={(value) => {
-                  setCaptchaComplete(value);
-                }}
-              />
-            )}
+            {(isEmailValid || showEmailFromUsername) &&
+              process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY && (
+                <ReCAPTCHA
+                  sitekey={process.env.NEXT_PUBLIC_CAPTCHA_SITE_KEY}
+                  onChange={(value) => {
+                    setCaptchaComplete(value);
+                  }}
+                />
+              )}
           </Stack>
         </form>
       </Paper>
