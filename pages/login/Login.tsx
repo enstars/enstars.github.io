@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+Login;
 import {
-  Alert,
   Container,
   Paper,
   Text,
@@ -23,35 +23,24 @@ import { useRouter } from "next/router";
 import useUser from "services/firebase/user";
 import {
   signInWithGoogle,
-  signInWithEmail,
   signUpWithEmail,
+  signInFunction,
 } from "services/firebase/authentication";
 import { showNotification } from "@mantine/notifications";
+import { z } from "zod";
+import { FirebaseError } from "firebase-admin";
 
 function Login() {
   const [isRegister, setIsRegister] = useState(false);
-  const [signOnError, setSignOnError] = useState<Error | null>(null);
+  const [signOnError, setSignOnError] = useState<FirebaseError | null>(null);
 
   const router = useRouter();
   const { user, userDB, updateUserDB, isUserDBPending } = useUser();
 
   function signOnAlertMsg(error: string) {
-    const codeRegex = /\(([^)]+)\)/;
-    const code = codeRegex.exec(error)?.[1].split("/")[1] ?? "";
-    let message;
-    switch (code) {
-      case "wrong-password":
-        message = <span>The password is incorrect. Please try again.</span>;
-        break;
-      case "user-not-found":
-        message = (
-          <span>
-            A user with this email address could not be found. Please try again.
-          </span>
-        );
-        break;
+    switch (error) {
       case "timeout":
-        message = (
+        return (
           <span>
             The operation has timed out. Please try again or{" "}
             <Anchor inherit href="/issues">
@@ -60,47 +49,81 @@ function Login() {
             if the problem is persistent.
           </span>
         );
-        break;
       case "too-many-requests":
-        message = (
+        return (
           <span>
             The server has received too many sign on requests. Please wait and
             try again later.
           </span>
         );
-        break;
       case "email-already-in-use":
-        message = (
+        return (
           <span>
             The email you tried to sign up with is already in use. Please try
             registering with a new email or login into the account associated
             with the provided email.
           </span>
         );
-        break;
+      case "taken-username":
+        return (
+          <span>
+            The provided username is already in use. Please provide another
+            username
+          </span>
+        );
+      case "short-username":
+        return (
+          <span>The provided username must be 8 characters or longer</span>
+        );
       default:
-        message = (
+        return (
           <span>
             An unknown sign on error has occured. Please try again or{" "}
             <Anchor href="/issues">submit an issue</Anchor> if the problem is
             persistent.
           </span>
         );
-        break;
     }
-
-    return message;
   }
 
   useEffect(() => {
     if (signOnError) {
-      showNotification({
-        id: "signinError",
-        color: "red",
-        title: "An error occurred",
-        message: signOnAlertMsg(signOnError.message),
-        icon: <IconAlertTriangle />,
-      });
+      const codeRegex = /\(([^)]+)\)/;
+      const errorCodeFull = signOnError.code ?? signOnError.message;
+      const errorCode =
+        codeRegex.exec(errorCodeFull)?.[1].split("/")[1] ??
+        errorCodeFull.split("/")[1] ??
+        errorCodeFull;
+
+      switch (errorCode) {
+        case "wrong-password":
+          form.setFieldError(
+            "password",
+            "This password is incorrect. Please try again or reset your password."
+          );
+          break;
+        case "user-not-found":
+          form.setFieldError(
+            "email",
+            "A user with this email or username could not be found."
+          );
+        case "email-already-in-use":
+          form.setFieldError(
+            "email",
+            "The email you tried to sign up with is already in use. Please try registering with a new email or login into the account associated with the provided email."
+          );
+        default:
+          showNotification({
+            id: "signinError",
+            color: "red",
+            title: "An error occurred",
+            message: signOnAlertMsg(errorCode),
+            icon: <IconAlertTriangle />,
+            autoClose: 5000,
+          });
+          break;
+      }
+    } else {
     }
   }, [signOnError]);
 
@@ -113,7 +136,12 @@ function Login() {
     },
 
     validate: {
-      email: (val) => (/^\S+@\S+$/.test(val) ? null : "Invalid email"),
+      email: (val) =>
+        !isRegister
+          ? null
+          : z.string().email().safeParse(val).success
+          ? null
+          : "Please provide a valid email",
       password: (val) =>
         val.length >= 6 ? null : "Password must be over 6 characters long",
       terms: (val: boolean) =>
@@ -137,16 +165,17 @@ function Login() {
     };
   }, [user, router, form, isRegister, updateUserDB]);
 
-  const onError = (error: Error) => {
-    console.error(error.message);
-    setSignOnError(error);
+  const onError = (error: any) => {
+    if (error.response.data)
+      setSignOnError(error.response.data as FirebaseError);
+    else setSignOnError(error as FirebaseError);
   };
 
   return (
     <Container
       id="signin-container"
       pt="lg"
-      style={{ height: "100%", maxWidth: 400 }}
+      style={{ height: "100%", maxWidth: 400, transform: "translateY(25%)" }}
     >
       {userDB ? (
         <Text id="signin-redirect" align="center" color="dimmed" size="sm">
@@ -205,7 +234,7 @@ function Login() {
                     onError
                   );
                 } else {
-                  signInWithEmail(
+                  signInFunction(
                     form.values.email,
                     form.values.password,
                     onError
@@ -226,7 +255,7 @@ function Login() {
                 <TextInput
                   id="siginin-input-email"
                   placeholder="anzu@ensemblesquare.com"
-                  label="Email"
+                  label={isRegister ? "Email" : "Email or Username"}
                   required
                   {...form.getInputProps("email")}
                 />

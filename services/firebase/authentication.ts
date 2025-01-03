@@ -11,7 +11,20 @@ import {
   updateEmail,
   updatePassword,
   reauthenticateWithPopup,
+  signInWithCustomToken,
 } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDocs,
+  getFirestore,
+  query,
+  setDoc,
+  where,
+} from "firebase/firestore";
+import { validateUsernameDb } from "./firestore";
+import z from "zod";
+import axios from "axios";
 
 const parseKey = (key: string) => {
   return key?.replace(/\\n/g, "\n")?.replace(/'/g, "");
@@ -154,6 +167,46 @@ export async function signInWithEmail(
   const clientAuth = getAuth();
   try {
     await signInWithEmailAndPassword(clientAuth, email, password);
+  } catch (error) {
+    onError(error as Error);
+  }
+}
+
+export async function signInWithUsername(
+  username: string,
+  password: string,
+  onError: (error: Error) => void
+) {
+  try {
+    const clientAuth = getAuth();
+    const res = await axios.post("/api/login/token", {
+      username,
+      password,
+    });
+    const token = res.data.customToken;
+    await signInWithCustomToken(clientAuth, token);
+  } catch (error) {
+    onError(error as Error);
+  }
+}
+
+export async function signInFunction(
+  emailOrUsername: string,
+  password: string,
+  onError: (error: Error) => void
+) {
+  try {
+    const parseUsernameEmail = z.string().email().safeParse(emailOrUsername);
+
+    if (!parseUsernameEmail.success) {
+      // this is a username
+      const username = emailOrUsername;
+      await signInWithUsername(username, password, onError);
+    } else {
+      // this is an email
+      const email = emailOrUsername;
+      await signInWithEmail(email, password, onError);
+    }
   } catch (error) {
     onError(error as Error);
   }

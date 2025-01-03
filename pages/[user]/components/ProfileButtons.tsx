@@ -8,7 +8,6 @@ import {
   Text,
   useMantineTheme,
 } from "@mantine/core";
-import { showNotification, updateNotification } from "@mantine/notifications";
 import {
   IconPencil,
   IconCopy,
@@ -114,7 +113,7 @@ function ProfileButtons({
       </CopyButton>
       {!isOwnProfile && (
         <>
-          {!user && !isFriend && !isOutgoingReq && !isIncomingReq && (
+          {user && !isFriend && !isOutgoingReq && !isIncomingReq && (
             <Tooltip label={t("sendFriendReq")}>
               <ActionIcon
                 onClick={() => sendFriendReq()}
