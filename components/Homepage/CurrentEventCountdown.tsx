@@ -196,7 +196,7 @@ function CurrentEventCountdowns({ events }: { events: Event[] }) {
         </Text>
       </Group>
       {shownEvents.map((event) => (
-        <CurrentEventCountdown shownEvent={event} />
+        <CurrentEventCountdown key={event.event_id} shownEvent={event} />
       ))}
     </>
   );

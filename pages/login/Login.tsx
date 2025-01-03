@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
+Login;
 import {
-  Alert,
   Container,
   Paper,
   Text,
@@ -28,27 +28,17 @@ import {
 } from "services/firebase/authentication";
 import { showNotification } from "@mantine/notifications";
 import { z } from "zod";
+import { FirebaseError } from "firebase-admin";
 
 function Login() {
   const [isRegister, setIsRegister] = useState(false);
-  const [signOnError, setSignOnError] = useState<Error | null>(null);
+  const [signOnError, setSignOnError] = useState<FirebaseError | null>(null);
 
   const router = useRouter();
   const { user, userDB, updateUserDB, isUserDBPending } = useUser();
 
   function signOnAlertMsg(error: string) {
-    const codeRegex = /\(([^)]+)\)/;
-    const code = codeRegex.exec(error)?.[1].split("/")[1] ?? error;
-    let message;
-    switch (code) {
-      case "wrong-password":
-        return <span>The password is incorrect. Please try again.</span>;
-      case "user-not-found":
-        return (
-          <span>
-            A user with this email address could not be found. Please try again.
-          </span>
-        );
+    switch (error) {
       case "timeout":
         return (
           <span>
@@ -97,15 +87,43 @@ function Login() {
   }
 
   useEffect(() => {
-    console.log({ signOnError });
     if (signOnError) {
-      showNotification({
-        id: "signinError",
-        color: "red",
-        title: "An error occurred",
-        message: signOnAlertMsg(signOnError.message),
-        icon: <IconAlertTriangle />,
-      });
+      const codeRegex = /\(([^)]+)\)/;
+      const errorCodeFull = signOnError.code ?? signOnError.message;
+      const errorCode =
+        codeRegex.exec(errorCodeFull)?.[1].split("/")[1] ??
+        errorCodeFull.split("/")[1] ??
+        errorCodeFull;
+
+      switch (errorCode) {
+        case "wrong-password":
+          form.setFieldError(
+            "password",
+            "This password is incorrect. Please try again or reset your password."
+          );
+          break;
+        case "user-not-found":
+          form.setFieldError(
+            "email",
+            "A user with this email or username could not be found."
+          );
+        case "email-already-in-use":
+          form.setFieldError(
+            "email",
+            "The email you tried to sign up with is already in use. Please try registering with a new email or login into the account associated with the provided email."
+          );
+        default:
+          showNotification({
+            id: "signinError",
+            color: "red",
+            title: "An error occurred",
+            message: signOnAlertMsg(errorCode),
+            icon: <IconAlertTriangle />,
+            autoClose: 5000,
+          });
+          break;
+      }
+    } else {
     }
   }, [signOnError]);
 
@@ -147,16 +165,17 @@ function Login() {
     };
   }, [user, router, form, isRegister, updateUserDB]);
 
-  const onError = (error: Error) => {
-    console.error(error.message);
-    setSignOnError(error);
+  const onError = (error: any) => {
+    if (error.response.data)
+      setSignOnError(error.response.data as FirebaseError);
+    else setSignOnError(error as FirebaseError);
   };
 
   return (
     <Container
       id="signin-container"
       pt="lg"
-      style={{ height: "100%", maxWidth: 400 }}
+      style={{ height: "100%", maxWidth: 400, transform: "translateY(25%)" }}
     >
       {userDB ? (
         <Text id="signin-redirect" align="center" color="dimmed" size="sm">
