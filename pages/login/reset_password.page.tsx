@@ -21,7 +21,6 @@ import { sendPasswordReset } from "services/firebase/firestore";
 import z from "zod";
 import axios from "axios";
 import ReCAPTCHA from "react-google-recaptcha";
-import { CONSTANTS } from "services/makotools/constants";
 
 function Page() {
   const [isEmailValid, setIsEmailValid] = useState<boolean | null>(null);
@@ -69,7 +68,7 @@ function Page() {
           Forgot password?
         </Title>
         <Text size="sm" mb="md" color="dimmed">
-          First, let's locate your account.
+          First, let&apos;s locate your account.
         </Text>
         <form
           id="send-password-reset"
@@ -187,7 +186,7 @@ function Page() {
             )}
             {showEmailFromUsername === false && (
               <Box mt={8}>
-                An account with that username doesn't exist. Please use a known
+                An account with that username does not exist. Please use a known
                 email address or{" "}
                 <Anchor component={Link} href="/login">
                   register a new account
