@@ -1,7 +1,7 @@
 import { Box, Alert, useMantineTheme, Title, Text } from "@mantine/core";
 import Confetti from "react-confetti";
 import { IconCake, IconStar } from "@tabler/icons-react";
-import { Fragment, createContext, useContext, useState } from "react";
+import { Fragment, createContext, useContext, useState, useMemo } from "react";
 import { useMediaQuery } from "@mantine/hooks";
 import { Parallax, ParallaxProvider } from "react-scroll-parallax";
 
@@ -23,15 +23,22 @@ import {
   getItemFromLocalizedDataArray,
 } from "services/data";
 import { useDayjs } from "services/libraries/dayjs";
-import { GameCard, GameCharacter, Event, Scout, GameUnit } from "types/game";
+import {
+  GameCard,
+  GameCharacter,
+  Event,
+  Scout,
+  GameUnit,
+  VersionedCharacterData,
+} from "types/game";
 import { getNameOrder } from "services/game";
 import {
   hexToHSL,
   primaryCharaColor,
   secondaryCharaColor,
 } from "services/utilities";
-import useUser from "services/firebase/user";
 import NameOrder from "components/utilities/formatting/NameOrder";
+import { Dayjs } from "dayjs";
 
 const CharacterColorsContext = createContext({
   primary: "",
@@ -39,9 +46,25 @@ const CharacterColorsContext = createContext({
   image: "",
 });
 
+export function selectCorrectCharacterVersion() {
+
+}
+
 export const useCharacterColors = () => {
   return useContext(CharacterColorsContext);
 };
+
+const differingDataKeys = [
+  "ages",
+  "heights",
+  "hobbies",
+  "introductions",
+  "quotes",
+  "renders.full",
+  "specialties",
+  "taglines",
+  "weights",
+];
 
 function Page({
   characterQuery,
@@ -69,9 +92,52 @@ function Page({
   const { data: units } = unitsQuery;
   const [renderFaded, setRenderFaded] = useState(false);
 
-  const [yearView, setYearView] = useState(String(1)); // always default to the newest data;
+  // get different versions of character data
+  const characterVersions: Array<{ date: Dayjs; reason: string; id: number }> =
+    useMemo(() => {
+      const flattenedRendersData: GameCharacter & {
+        "renders.full": Array<VersionedCharacterData<string>>;
+      } = {
+        ...character,
+        "renders.full": character.renders.full,
+      }
+
+      const versionedData: [
+        string,
+        Array<VersionedCharacterData<string[] | string | number>>
+      ][] = Object.entries(flattenedRendersData).filter(([key]) =>
+        differingDataKeys.includes(key)
+      );
+   const flattenedVersionedData = versionedData.map(data => data[1]).flat();
+   const uniqueVersions = flattenedVersionedData.reduce((acc, current) => {
+        const formattedVersionData = {
+            date: dayjs(current.date),
+            reason: current.reason,
+        }
+        const doesVersionExistInArray = acc.find(data => data.date.isSame(formattedVersionData.date) || data.reason === formattedVersionData.reason);
+        if (!doesVersionExistInArray) {
+            const updatedArray = [...acc, formattedVersionData];
+            return updatedArray;
+        } else {
+            return acc;
+        }
+   }, [] as Array<{date: Dayjs; reason: string}>);
+
+   return uniqueVersions.sort((a, b) => {
+    if (a.date.isSameOrBefore(b.date)) return -1;
+    else return 1;
+   }).map((version, index) => ({
+    ...version,
+    id: index,
+   }));
+  }, [character]);
 
   // create a context for the characters colors
+  const [selectedVersionId, setSelectedVersionId] = useState(0);
+
+  const selectedVersion = useMemo(() => {
+    return characterVersions[selectedVersionId];
+  }, [selectedVersionId]);
 
   const charaColors = {
     primary: primaryCharaColor(theme, character.image_color),
@@ -225,17 +291,21 @@ function Page({
           </Box>
           {/* {CharaRender(theme, renderFaded, character, renderHeight)} */}
           <CharaRender
-            theme={theme}
-            renderFaded={renderFaded}
-            character={character}
-            renderHeight={renderHeight}
+            {...{
+                theme,
+                renderFaded,
+                character,
+                renderHeight,
+                selectedVersion,
+            }}
           />
           <ProfileSummary
             character={character}
             renderFaded={renderFaded}
             setRenderFaded={setRenderFaded}
-            yearValue={yearView}
-            setYearValue={setYearView}
+            versionList={characterVersions}
+            selectedVersion={selectedVersionId}
+            setSelectedVersion={setSelectedVersionId}
           />
           <Box
             id="chara-name-secondaryName"

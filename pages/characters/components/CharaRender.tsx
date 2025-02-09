@@ -3,6 +3,7 @@ import { Parallax, useParallaxController } from "react-scroll-parallax";
 
 import { GameCharacter } from "types/game";
 import Picture from "components/core/Picture";
+import { Dayjs } from "dayjs";
 
 export function CharaRender(
   // theme,
@@ -14,14 +15,17 @@ export function CharaRender(
     renderFaded,
     character,
     renderHeight,
+    selectedVersion,
   }: {
     theme: ReturnType<typeof useMantineTheme>;
     renderFaded: boolean;
     character: GameCharacter<string[]>;
     renderHeight: number;
+    selectedVersion: { date: Dayjs; reason: string; id: number };
   }
 ) {
   const parallaxController = useParallaxController();
+  console.log(character);
   return (
     <Box
       id="chara-render"

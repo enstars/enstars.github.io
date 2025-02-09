@@ -8,7 +8,7 @@ import {
   Image,
   Stack,
   Checkbox,
-  SegmentedControl,
+  Select,
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 
@@ -18,21 +18,23 @@ import Reactions from "components/sections/Reactions";
 import { getAssetURL } from "services/data";
 import { useDayjs } from "services/libraries/dayjs";
 import { GameCharacter } from "types/game";
+import { Dayjs } from "dayjs";
 import { Dispatch, SetStateAction } from "react";
-import { parseInt } from "lodash";
 
 export function ProfileSummary({
   character,
   renderFaded,
   setRenderFaded,
-  yearValue,
-  setYearValue,
+  versionList,
+  selectedVersion,
+  setSelectedVersion,
 }: {
   character: GameCharacter;
   renderFaded: boolean;
-  setRenderFaded: React.Dispatch<React.SetStateAction<boolean>>;
-  yearValue: string;
-  setYearValue: Dispatch<SetStateAction<string>>;
+  setRenderFaded: Dispatch<SetStateAction<boolean>>;
+  versionList: Array<{ date: Dayjs; reason: string; id: number }>;
+  selectedVersion: number;
+  setSelectedVersion: Dispatch<SetStateAction<number>>;
 }) {
   const theme = useMantineTheme();
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -47,7 +49,7 @@ export function ProfileSummary({
           position: "absolute",
           width: 350,
           right: 0,
-          top: 180,
+          top: 100,
           [`@media (max-width: ${theme.breakpoints.sm}px)`]: {
             width: 350,
           },
@@ -62,13 +64,19 @@ export function ProfileSummary({
           },
         }}
       >
-        <SegmentedControl
-          data={[
-            { label: "Year 1", value: String(0) },
-            { label: "Year 2", value: String(1) },
-          ]}
-          value={yearValue}
-          onChange={setYearValue}
+        <Select
+          dropdownPosition="top"
+          label="Select Version"
+          placeholder="Version"
+          mb={theme.spacing.sm}
+          data={versionList.map((version) => ({
+            value: String(version.id),
+            label: `${version.reason} (${version.date.format("MMMM YYYY")})`,
+          }))}
+          value={String(selectedVersion)}
+          onChange={(value: string) => {
+            setSelectedVersion(parseInt(value));
+          }}
         />
         <Paper
           shadow="md"
@@ -112,15 +120,15 @@ export function ProfileSummary({
           <Stack spacing="xs" mt={6}>
             <CharacterMiniInfo
               label="Age"
-              info={Number(character.ages?.[parseInt(yearValue)])}
+              info={Number(character.age)}
             />
             <CharacterMiniInfo
               label="Height"
-              info={`${character.heights[parseInt(yearValue)]}cm`}
+              info={`${character.height}cm`}
             />
             <CharacterMiniInfo
               label="Weight"
-              info={`${character.weights[parseInt(yearValue)]}kg`}
+              info={`${character.weight}kg`}
             />
             <CharacterMiniInfo
               label="School"
